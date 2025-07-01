@@ -1,0 +1,10 @@
+{
+  "endpoint": "http://XXXXX/chat",
+  "model": "gemini-2.5-flash-preview-05-20",
+  "template": "zgemini.php",
+  "headers": {
+    "Authorization": "Bearer XXXXX",
+    "Content-Type": "application/json"
+  },
+  "params": {}
+}

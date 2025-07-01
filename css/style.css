@@ -1,0 +1,232 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body, html {
+  width: 100%;
+  height: 100%;
+  font-family: sans-serif;
+}
+#container {
+  display: flex;
+  height: 100vh;
+  position: relative;
+  flex-direction: row;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ✅ 切换按钮始终可点（小屏时显示） */
+#sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1100;
+  background: #007acc;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* ✅ 侧边栏 */
+#sidebar {
+  width: 200px;
+  background: #f5f5f5;
+  border-right: 1px solid #ddd;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 999;
+}
+#sidebar-controls {
+  margin-top: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#sidebar input,
+#sidebar button {
+  padding: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+#conv-list {
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #ccc;
+  padding-top: 8px;
+  margin-top: 10px;
+}
+.conv-item {
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+.conv-item.active {
+  background: #e0f0ff;
+}
+
+/* ✅ 主区域 */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+#msg-container {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background: #fafafa;
+}
+.msg {
+  max-width: 70%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  width: fit-content;
+  font-size: 14px;
+}
+.msg.user {
+  background: #daf1da;
+  align-self: flex-end;
+  border-radius: 12px 12px 0 12px;
+  margin-left: auto;
+}
+.msg.assistant {
+  background: #fff;
+  align-self: flex-start;
+  border: 1px solid #ccc;
+  border-radius: 12px 12px 12px 0;
+  margin-right: 20%;
+}
+.msg.loading {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #ccc;
+  border-top-color: #333;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 4px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ✅ 输入区域 */
+#input-area {
+  display: flex;
+  padding: 14px 10px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+#input-area textarea {
+  flex: 1;
+  resize: none;
+  height: 50px;
+  padding: 6px;
+  font-size: 14px;
+}
+#input-area button {
+  margin-left: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* ✅ Markdown 样式 */
+.msg.assistant p,
+.msg.assistant ul,
+.msg.assistant ol,
+.msg.assistant table,
+.msg.assistant code,
+.msg.assistant pre {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.msg.assistant code {
+  background: #eee;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+.msg.assistant pre {
+  background: #f0f0f0;
+  padding: 8px;
+  overflow-x: auto;
+  border-left: 4px solid #ccc;
+}
+.msg.assistant table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.msg.assistant th,
+.msg.assistant td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  text-align: left;
+}
+.msg.assistant th {
+  background: #f2f2f2;
+  font-weight: bold;
+}
+.msg.assistant h1,
+.msg.assistant h2,
+.msg.assistant h3 {
+  font-weight: bold;
+  margin: 6px 0;
+}
+
+/* ✅ 响应式控制 */
+@media (min-width: 1024px) {
+  #sidebar {
+    transform: none !important;
+    position: relative !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  #sidebar-toggle {
+    display: none !important;
+  }
+  #container.sidebar-open #sidebar.collapsed {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  #sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+  }
+  #sidebar.collapsed {
+    transform: translateX(-100%);
+    visibility: hidden;
+    pointer-events: none;
+  }
+  #container.sidebar-open #sidebar.collapsed {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+  #sidebar-toggle {
+    display: block;
+  }
+}

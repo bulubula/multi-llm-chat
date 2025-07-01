@@ -1,0 +1,10 @@
+{
+	"endpoint": "https://api.deepseek.com/chat/completions",
+	"model": "deepseek-chat",
+	"template": "openai.php",
+	"headers": {
+		"Authorization": "Bearer sk-XXXXX",
+		"Content-Type": "application/json"
+	},
+	"params": {}
+}
