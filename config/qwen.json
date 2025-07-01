@@ -1,0 +1,18 @@
+{
+	"endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+	"model": "qwen-plus-latest",
+	"template": "qwen.php",
+	"headers": {
+		"Authorization": "Bearer sk-XXXX",
+		"Content-Type": "application/json"
+	},
+	"params": {
+		"extra_body": {
+			"enable_search": true,
+			"search_options": {
+				"forced_search": true,
+				"enable_source": true
+			}
+		}
+	}
+}
