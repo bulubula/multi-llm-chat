@@ -3,16 +3,16 @@
   let convs = [], activeIndex = -1;
 
   const el = {
-    prov:  document.getElementById('provider'),
-    save:  document.getElementById('btn-save'),
-    load:  document.getElementById('btn-load'),
-    add:   document.getElementById('btn-new'),
-    list:  document.getElementById('conv-list'),
-    msgs:  document.getElementById('msg-container'),
-    input: document.getElementById('msg-input'),
-    send:  document.getElementById('btn-send'),
-    sidebar: document.getElementById('sidebar'),
-    toggle:  document.getElementById('sidebar-toggle'),
+    prov:      document.getElementById('provider'),
+    save:      document.getElementById('btn-save'),
+    load:      document.getElementById('btn-load'),
+    add:       document.getElementById('btn-new'),
+    list:      document.getElementById('conv-list'),
+    msgs:      document.getElementById('msg-container'),
+    input:     document.getElementById('msg-input'),
+    send:      document.getElementById('btn-send'),
+    sidebar:   document.getElementById('sidebar'),
+    toggle:    document.getElementById('sidebar-toggle'),
     container: document.getElementById('container')
   };
 
@@ -26,14 +26,16 @@
       loadFromServer();
     }
     bind();
-    handleResize(); // 初始化宽度判断
+    handleResize();
   }
 
   function bind(){
     el.add.onclick = () => {
       const name = '对话 ' + (convs.length + 1);
       convs.push({ name, provider: '', messages: [] });
-      saveLS(); renderList(); selectConv(convs.length - 1);
+      saveLS();
+      renderList();
+      selectConv(convs.length - 1);
     };
 
     el.load.onclick = () => {
@@ -42,7 +44,7 @@
     };
 
     el.save.onclick = () => {
-      fetch('./backend/conversations.php', {
+      fetch('/php/llmweb/backend/conversations.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(convs)
@@ -85,7 +87,7 @@
   }
 
   function loadFromServer(){
-    fetch('./backend/conversations.php')
+    fetch('/php/llmweb/backend/conversations.php')
       .then(r => r.json())
       .then(data => {
         convs = data || [];
@@ -122,28 +124,37 @@
   function renderMsgs(msgs){
     el.msgs.innerHTML = '';
     msgs.forEach(m => {
+      const role = (m.role === 'model' ? 'assistant' : m.role);
       const d = document.createElement('div');
-      d.className = 'msg ' + m.role + (m.loading ? ' loading' : '');
+      d.className = 'msg ' + role + (m.loading ? ' loading' : '');
 
       if (m.loading) {
         const sp = document.createElement('div');
         sp.className = 'spinner';
         d.append(sp);
       } else {
-        if (m.role === 'assistant') {
+        if (role === 'assistant') {
           const html = marked.parse(m.text || '');
           d.innerHTML = DOMPurify.sanitize(html);
         } else {
           d.textContent = m.text;
         }
       }
-
       el.msgs.appendChild(d);
     });
     el.msgs.scrollTop = el.msgs.scrollHeight;
   }
 
-  function sendMessage(){
+  function updateLatestAssistantText(text){
+    const nodes = el.msgs.querySelectorAll('.msg.assistant');
+    const last = nodes[nodes.length - 1];
+    if (last) {
+      last.innerHTML = DOMPurify.sanitize(marked.parse(text));
+      el.msgs.scrollTop = el.msgs.scrollHeight;
+    }
+  }
+
+  async function sendMessage(){
     const txt = el.input.value.trim();
     if (!txt) {
       alert('请输入内容后再发送哦～');
@@ -167,37 +178,81 @@
         .map(m => ({ role: m.role, text: m.text }))
     };
 
-    fetch('./backend/dispatcher.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-	.then(res => {
-	  cv.messages.pop(); // 移除 loading
+    try {
+      const res = await fetch('/php/llmweb/backend/dispatcher.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-	  let reply = '';
-	  if (res.choices?.[0]?.message?.content) {
-		reply = res.choices[0].message.content;
-	  } else if (res.error) {
-		reply = res.error;
-	  } else {
-		reply = '其它错误';
-	  }
+      if (!res.ok) throw new Error('无效响应');
 
-	  cv.messages.push({ role: 'assistant', text: reply });
-	  renderMsgs(cv.messages);
-	  saveLS();
-	})
-    .catch(err => {
+      // 判断是否流模式：基于响应头
+      const ctype = res.headers.get('Content-Type') || '';
+      const isStream = ctype.includes('event-stream');
+
+      // 非流：直接解析 JSON 并更新
+      if (!isStream) {
+        const json = await res.json();
+        const content = json.choices?.[0]?.message?.content
+                     ?? json.candidates?.[0]?.content
+                     ?? json.completion
+                     ?? '(无回复)';
+        cv.messages.pop();
+        cv.messages.push({ role: 'assistant', text: content });
+        renderMsgs(cv.messages);
+        saveLS();
+        return;
+      }
+
+      // 流模式：逐 chunk 读取
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let result = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+
+        chunk.split('\n').forEach(line => {
+          if (!line.startsWith('data:')) return;
+          const jsonStr = line.replace(/^data:\s*/, '');
+          if (jsonStr === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            let delta = '';
+            if (parsed.choices?.[0]?.delta?.content) {
+              delta = parsed.choices[0].delta.content;
+            } else if (parsed.candidates?.[0]?.content) {
+              delta = parsed.candidates[0].content;
+            } else if (parsed.completion) {
+              delta = parsed.completion;
+            }
+            if (delta) {
+              result += delta;
+              updateLatestAssistantText(result);
+            }
+          } catch (e) {
+            console.warn('解析 chunk 失败：', e);
+          }
+        });
+      }
+
+      // 结束符后更新最终消息
       cv.messages.pop();
-      cv.messages.push({ role: 'assistant', text: '请求失败：' + err });
+      cv.messages.push({ role: 'assistant', text: result || '(无回复)' });
       renderMsgs(cv.messages);
       saveLS();
-    })
-    .finally(() => {
+
+    } catch (err) {
+      cv.messages.pop();
+      cv.messages.push({ role: 'assistant', text: '请求失败：' + err.message });
+      renderMsgs(cv.messages);
+      saveLS();
+    } finally {
       el.send.disabled = false;
-    });
+    }
   }
 
   init();
