@@ -1,4 +1,12 @@
 <?php
+/*
+transform_conversation
+前端对话转换函数
+make_api_call
+非流式请求函数
+stream_response
+流式请求函数
+*/
 
 function transform_conversation($conversation) {
   $result = [];
@@ -41,5 +49,51 @@ function make_api_call($config, $conversation) {
   }
   curl_close($ch);
   return json_decode($response, true);
+}
+
+function stream_response($config, $conversation) {
+    $messages = transform_conversation($conversation);
+    $postData = [
+        'model' => $config['model'],
+        'messages' => $messages,
+        'stream' => true
+    ];
+
+    if (isset($config['params']['extra_body'])) {
+        $postData = array_merge($postData, $config['params']['extra_body']);
+    }
+
+    $headers = [];
+    foreach ($config['headers'] as $key => $value) {
+        $headers[] = "$key: $value";
+    }
+
+    $ch = curl_init($config['endpoint']);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => false,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => json_encode($postData),
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+		CURLOPT_WRITEFUNCTION => function($ch, $data) {
+			// 避免出现 data: data: {...}
+			foreach (explode("\n", $data) as $line) {
+				$line = trim($line);
+				if ($line === '') continue;
+					echo $line . "\n";
+			}
+
+			flush();
+			return strlen($data);
+		}
+    ]);
+
+    curl_exec($ch);
+    curl_close($ch);
+
+    // 标记结束
+    echo "data: [DONE]\n\n";
+    flush();
 }
 ?>
