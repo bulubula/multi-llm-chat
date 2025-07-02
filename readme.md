@@ -1,6 +1,7 @@
 backend/dispatcher.php
 Content Type: application/json
-//post 内容示例
+## post 内容示例
+```
   //选择provider，根据这个读取json，根据json选择导入的php
   //对话的格式，每个api的php都根据这个格式把对话转化成自己所需的对话格式
 {
@@ -13,7 +14,9 @@ Content Type: application/json
     { "role": "user", "text": "上下文记忆有长度限制吗" }
   ]
 }
-//返回格式
+```
+## 返回格式
+```
 {
 	"id":"8bce80ce-6b78-4924-a10b-ca7105c82258",
 	"object":"chat.completion",
@@ -40,31 +43,6 @@ Content Type: application/json
 	},
 	"system_fingerprint":"fp_8802369eaa_prod0623_fp8_kvcache"
 }
-
-
-
-
-{
-    "id": "conv-1750821553707-83",
-    "title": "测试",
-    "messages": [
-        {
-            "author": "User",
-            "content": "快速简短回复",
-            "className": "user-message",
-            "isStream": false
-        },
-        {
-            "author": "User",
-            "content": "测试",
-            "className": "user-message",
-            "isStream": false
-        },
-        {
-            "author": "qwen",
-            "content": "你好！有什么我可以帮你的吗？",
-            "className": "bot-message",
-            "isStream": false
-        }
-    ]
-}
+```
+### 流式响应的说明
+json配置文件里，一级键值"stream": true,是告诉前端dispatch发送流式数据，"params"参数或这直接url里才是真正发给api的流式响应标志，因为不同的api可能流式响应标志不同，所有有两个stream标准，一个发给dispatch，一个发给api
