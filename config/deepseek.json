@@ -6,5 +6,6 @@
 		"Authorization": "Bearer sk-XXXXX",
 		"Content-Type": "application/json"
 	},
+	"stream": true,
 	"params": {}
 }
